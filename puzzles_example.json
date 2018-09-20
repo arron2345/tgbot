@@ -1,0 +1,27 @@
+{
+  "puzzles":
+  [
+    {
+      "question":"cz是指",
+      "options":
+      [
+        ["1","zhaochangpeng"],
+        ["2","chongzhou"],
+        ["3","blablabla"],
+        ["4","arron"]
+      ],
+      "answer":"5"
+    },
+    {
+      "question":"一姐是指",
+      "options":
+      [
+        ["a","tengzhao"],
+        ["b","hekeren"],
+        ["c","sophia"],
+        ["d","heyi"]
+      ],
+      "answer":"e"
+    }  
+  ]
+}
