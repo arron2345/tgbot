@@ -1,1 +1,2 @@
 # tgbot
+Binance Telegram Bot
