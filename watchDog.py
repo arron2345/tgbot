@@ -63,7 +63,7 @@ def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
     if not activeuser.id in ENTRANCE_PROGRESS:
-        bot.sendMessage(activeuser.id,"请输入 /start 重新作答")
+        bot.sendMessage(activeuser.id,"如回答错误，请输入 /start 重新作答！")
         return
     thedata = update.callback_query.data
     lasttext = PUZZLES[ENTRANCE_PROGRESS[activeuser.id]]['question']
@@ -85,7 +85,7 @@ def callbackhandler(bot,update):
             
     else:
         #错误
-            bot.sendMessage(activeuser.id,"答案不正确 请输入 /start 重新作答")
+            bot.sendMessage(activeuser.id,"答案不正确，请输入 /start 重新作答！")
             del ENTRANCE_PROGRESS[activeuser.id]
 
     update.callback_query.edit_message_text( text = lasttext)
@@ -112,7 +112,7 @@ def botcommandhandler(bot,update):
         
 
 def welcome(bot, update):
-    if update.message.chat_id == WATCHDOGGROUP:
+    if update.message.chat_id  == WATCHDOGGROUP:
         for newUser in update.message.new_chat_members:
             logger.warning("%s(%s)加入%s",newUser.full_name,newUser.id,update.message.chat.title)
             restrict(update.message.chat_id,newUser.id,0.4)
