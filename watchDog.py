@@ -40,7 +40,7 @@ file=open(puzzlesjson,"r")
 PUZZLES = json.load(file)['puzzles']
 file.close()
 
-lastpublicid = 0 #keep only one hint message
+lasthintid = 0 #keep only one hint message
 kickjobs = {}
 
 def ban(chatid,userid):
@@ -75,9 +75,13 @@ def callbackhandler(bot,update):
             if activeuser.id in kickjobs:
                 kickjobs[activeuser.id].schedule_removal()
                 del kickjobs[activeuser.id]
-            unrestrict(WATCHDOGGROUP,activeuser.id)
-            bot.sendMessage(activeuser.id,"您已全部作答正确，可以正常参与讨论")
-            logger.warning("%s(%s)通过测试并解封",activeuser.full_name,activeuser.id)
+            if bot.getChatMember(WATCHDOGGROUP,activeuser.id).can_send_messages == False:
+                unrestrict(WATCHDOGGROUP,activeuser.id)
+                logger.warning("%s(%s)通过测试并解封",activeuser.full_name,activeuser.id)
+                bot.sendMessage(activeuser.id,"您已全部作答正确，可以正常参与讨论")
+            else:
+                bot.sendMessage(activeuser.id,"您原本就可以正常参加讨论，请勿调戏机器人")
+                
         else:
             bot.sendMessage(activeuser.id,"正确，下一题")
             ENTRANCE_PROGRESS[activeuser.id]+=1
@@ -120,10 +124,10 @@ def welcome(bot, update):
             kickjobs[newUser.id] = jobqueue.run_once(watchdogkick,probation*60,context = newUser)
             logger.warning("已启动%s分钟踢出计时器",probation)
 
-            global lastpublicid
-            if lastpublicid != 0:
-                bot.deleteMessage(WATCHDOGGROUP,lastpublicid)
-            lastpublicid = update.message.reply_markdown("新用户请在{}分钟内私聊[机器人](tg://user?id={})完成入群测试".format(probation,botid))
+            global lasthintid
+            if lasthintid != 0:
+                bot.deleteMessage(WATCHDOGGROUP,lasthintid)
+            lasthintid = update.message.reply_markdown("新用户请在{}分钟内私聊[机器人](tg://user?id={})完成入群测试".format(probation,botid)).message_id
             update.message.delete()
 
             try:
