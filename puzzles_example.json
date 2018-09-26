@@ -10,7 +10,7 @@
         ["3","blablabla"],
         ["4","arron"]
       ],
-      "answer":"5"
+      "answer":"1"
     },
     {
       "question":"一姐是指",
@@ -21,7 +21,7 @@
         ["c","sophia"],
         ["d","heyi"]
       ],
-      "answer":"e"
+      "answer":"d"
     }  
   ]
 }
