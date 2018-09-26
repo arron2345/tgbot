@@ -23,8 +23,9 @@ logger = logging.getLogger(__name__)
 watchdogconfig = ConfigParser.ConfigParser()
 watchdogconfig.read("watchdog.conf")
 bottoken = watchdogconfig.get("bot","token")
+botid=int(bottoken.split(":")[0])
 puzzlesjson = watchdogconfig.get("puzzle","json")
-botid=int(watchdogconfig.get("bot","id"))
+
 WATCHDOGGROUP = int(watchdogconfig.get("group","id"))
 
 
@@ -46,6 +47,7 @@ def callbackhandler(bot,update):
             #全部回答完毕
             unrestrict(WATCHDOGGROUP,activeuser.id)
             bot.sendMessage(activeuser.id,"您已全部作答正确，可以正常参与讨论")
+            logger.warning("%s(%s)通过测试",newUser.full_name,newUser.id)
         else:
             bot.sendMessage(activeuser.id,"正确，下一题")
             ENTRANCE_PROGRESS[activeuser.id]+=1
@@ -67,6 +69,7 @@ def buildpuzzlemarkup(options):
     
 
 ENTRANCE_PROGRESS={}
+
 def botcommandhandler(bot,update):
     if "/join" in update.message.text:
         update.message.reply_text(bot.exportChatInviteLink(BNB48TEST))
@@ -79,10 +82,16 @@ def botcommandhandler(bot,update):
         
 
 def welcome(bot, update):
-    if update.message.chat_id  == WATCHDOGGROUP:
-        update.message.reply_markdown("新进成员需私聊[机器人](tg://user?id={})完成入群测试后方可正常参与聊天".format(botid))
+    if update.message.chat_id == WATCHDOGGROUP:
         for newUser in update.message.new_chat_members:
+            logger.warning("%s(%s)加入%s",newUser.full_name,newUser.id,update.message.chat.title)
             restrict(update.message.chat_id,newUser.id,0.4)
+            logger.warning("已禁言")
+            try:
+                bot.sendMessage(newUser.id,"请私聊[机器人](tg://user?id={})完成入群测试后后参与讨论".format(botid),parse_mode=ParseMode.MARKDOWN)
+            except:
+                logger.warning("向%s(%s)发送入群须知失败",newUser.full_name,newUser.id)
+            
 
 def ban(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
