@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import sys
 import logging
@@ -22,8 +23,14 @@ logger = logging.getLogger(__name__)
 
 watchdogconfig = ConfigParser.ConfigParser()
 watchdogconfig.read("watchdog.conf")
+
 bottoken = watchdogconfig.get("bot","token")
 botid=int(bottoken.split(":")[0])
+botname = watchdogconfig.get("bot","name")
+groupid = int(watchdogconfig.get("group","id"))
+groupname = watchdogconfig.get("group","name")
+probation = int(watchdogconfig.get("group","probation"))
+
 puzzlesjson = watchdogconfig.get("puzzle","json")
 
 WATCHDOGGROUP = int(watchdogconfig.get("group","id"))
@@ -33,6 +40,25 @@ file=open(puzzlesjson,"r")
 PUZZLES = json.load(file)['puzzles']
 file.close()
 
+lastpublicid = 0 #keep only one hint message
+kickjobs = {}
+
+def ban(chatid,userid):
+    updater.bot.kickChatMember(chatid,userid)
+
+def kick(chatid,userid):
+    updater.bot.kickChatMember(chatid,userid)
+    updater.bot.unbanChatMember(chatid,userid)
+
+def watchdogkick(bot,job):
+    kick(WATCHDOGGROUP,job.context.id)
+    logger.warning("%s(%s)被踢出群",job.context.full_name,job.context.id)
+
+def restrict(chatid,userid,minutes):
+    updater.bot.restrictChatMember(chatid,user_id=userid,can_send_messages=False,until_date=time.time()+int(float(minutes)*60))
+
+def unrestrict(chatid,userid):
+    updater.bot.restrictChatMember(chatid,user_id=userid,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
@@ -45,9 +71,13 @@ def callbackhandler(bot,update):
         #回答正确
         if ENTRANCE_PROGRESS[activeuser.id] == len(PUZZLES) - 1:
             #全部回答完毕
+            global kickjobs
+            if activeuser.id in kickjobs:
+                kickjobs[activeuser.id].schedule_removal()
+                del kickjobs[activeuser.id]
             unrestrict(WATCHDOGGROUP,activeuser.id)
             bot.sendMessage(activeuser.id,"您已全部作答正确，可以正常参与讨论")
-            logger.warning("%s(%s)通过测试",newUser.full_name,newUser.id)
+            logger.warning("%s(%s)通过测试并解封",activeuser.full_name,activeuser.id)
         else:
             bot.sendMessage(activeuser.id,"正确，下一题")
             ENTRANCE_PROGRESS[activeuser.id]+=1
@@ -87,24 +117,23 @@ def welcome(bot, update):
             logger.warning("%s(%s)加入%s",newUser.full_name,newUser.id,update.message.chat.title)
             restrict(update.message.chat_id,newUser.id,0.4)
             logger.warning("已禁言")
+            kickjobs[newUser.id] = jobqueue.run_once(watchdogkick,probation*60,context = newUser)
+            logger.warning("已启动%s分钟踢出计时器",probation)
+
+            global lastpublicid
+            if lastpublicid != 0:
+                bot.deleteMessage(WATCHDOGGROUP,lastpublicid)
+            lastpublicid = update.message.reply_markdown("新用户请在{}分钟内私聊[机器人](tg://user?id={})完成入群测试".format(probation,botid))
+            update.message.delete()
+
             try:
-                bot.sendMessage(newUser.id,"请私聊[机器人](tg://user?id={})完成入群测试后后参与讨论".format(botid),parse_mode=ParseMode.MARKDOWN)
+                bot.sendMessage(newUser.id,"请发送 /start 完成入群测试".format(botid),parse_mode=ParseMode.MARKDOWN)
             except:
-                logger.warning("向%s(%s)发送入群须知失败",newUser.full_name,newUser.id)
+                pass
+                #logger.warning("向%s(%s)私聊发送入群须知失败",newUser.full_name,newUser.id)
             
 
-def ban(chatid,userid):
-    updater.bot.kickChatMember(chatid,userid)
-
-def kick(chatid,userid):
-    updater.bot.kickChatMember(chatid,userid)
-    updater.bot.unbanChatMember(chatid,userid)
-
-def restrict(chatid,userid,minutes):
-    updater.bot.restrictChatMember(chatid,user_id=userid,can_send_messages=False,until_date=time.time()+int(float(minutes)*60))
-
-def unrestrict(chatid,userid):
-    updater.bot.restrictChatMember(chatid,user_id=userid,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
+    
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
@@ -113,6 +142,7 @@ def error(bot, update, error):
 
 
 updater = Updater(token=bottoken)
+jobqueue = updater.job_queue
 
 def main():
     """Start the bot."""
@@ -149,6 +179,5 @@ def main():
 
 
 if __name__ == '__main__':
-    
+    logger.warning("机器人%s(%s)开始看守%s(%s)",watchdogconfig.get("bot","name"),watchdogconfig.get("bot","token"),watchdogconfig.get("group","name"),watchdogconfig.get("group","id"))
     main()
-
