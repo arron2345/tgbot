@@ -126,7 +126,10 @@ def welcome(bot, update):
 
             global lasthintid
             if lasthintid != 0:
-                bot.deleteMessage(WATCHDOGGROUP,lasthintid)
+                try:
+                    bot.deleteMessage(WATCHDOGGROUP,lasthintid)
+                except:
+                    pass
             lasthintid = update.message.reply_markdown("新用户请在{}分钟内私聊[机器人](tg://user?id={})完成入群测试".format(probation,botid)).message_id
             update.message.delete()
 
